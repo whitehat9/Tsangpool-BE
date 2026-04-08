@@ -38,28 +38,22 @@ export const getCustomerVehicleInfo = asyncHandler(
       throw new Error("No active vehicle found for this customer");
     }
 
-    // Populate from the correct model based on stockType
-    const populateModel =
-      vehicle.stockType === "StockConceptCSV"
-        ? "StockConceptCSV"
-        : "StockConcept";
-
+    // Populate bike information
     await vehicle.populate({
-      path: "stockConcept",
-      model: populateModel,
-      select: "modelName category engineCC color variant yearOfManufacture",
+      path: "bike",
+      select: "modelName mainCategory category year engineSize",
     });
 
-    const stock = vehicle.stockConcept as any;
+    const bike = vehicle.bike as any;
 
     res.status(200).json({
       success: true,
       data: {
         vehicleId: vehicle._id,
-        modelName: stock?.modelName ?? "Unknown Model",
+        modelName: bike?.modelName ?? "Unknown Model",
       },
     });
-  }
+  },
 );
 
 /**
@@ -104,20 +98,20 @@ export const createServiceBooking = asyncHandler(
     if (!allServices.includes(serviceType)) {
       res.status(400);
       throw new Error(
-        `Invalid service type: ${serviceType}. Please select a valid service.`
+        `Invalid service type: ${serviceType}. Please select a valid service.`,
       );
     }
 
     // Check if customer has already used this service
     const hasUsedService = await ServiceBookingModel.hasCustomerUsedService(
       req.customer._id.toString(),
-      serviceType
+      serviceType,
     );
 
     if (hasUsedService) {
       res.status(400);
       throw new Error(
-        "You have already used this service. Each service can only be booked once."
+        "You have already used this service. Each service can only be booked once.",
       );
     }
 
@@ -131,7 +125,7 @@ export const createServiceBooking = asyncHandler(
       _id: vehicle,
       customer: req.customer._id,
       isActive: true,
-    }).populate("stockConcept");
+    }).populate("bike");
 
     if (!customerVehicle) {
       res.status(404);
@@ -159,7 +153,7 @@ export const createServiceBooking = asyncHandler(
 
     // Validate appointment time format and extract minutes
     const timeMatch = appointmentTime.match(
-      /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/
+      /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/,
     );
     if (!timeMatch) {
       res.status(400);
@@ -171,13 +165,13 @@ export const createServiceBooking = asyncHandler(
       branch,
       appointmentDateTime,
       appointmentTime,
-      20 // 20-minute buffer
+      20, // 20-minute buffer
     );
 
     if (!isAvailable) {
       res.status(409);
       throw new Error(
-        "Time slot is not available. Please choose a time at least 20 minutes apart from existing bookings."
+        "Time slot is not available. Please choose a time at least 20 minutes apart from existing bookings.",
       );
     }
 
@@ -202,8 +196,7 @@ export const createServiceBooking = asyncHandler(
       {
         path: "vehicle",
         populate: {
-          path: "stockConcept",
-          model: "StockConcept",
+          path: "bike",
         },
       },
       { path: "branch", select: "name address phone email" },
@@ -220,7 +213,7 @@ export const createServiceBooking = asyncHandler(
     };
 
     logger.info(
-      `Service booking created: ${serviceBooking.bookingId} for customer ${req.customer._id}`
+      `Service booking created: ${serviceBooking.bookingId} for customer ${req.customer._id}`,
     );
 
     res.status(201).json({
@@ -237,7 +230,7 @@ export const createServiceBooking = asyncHandler(
         customerProfile: responseData.customerProfile,
       },
     });
-  }
+  },
 );
 
 /**
@@ -301,7 +294,7 @@ export const getCustomerBookings = asyncHandler(
       currentPage: pageNum,
       data: bookings,
     });
-  }
+  },
 );
 
 /**
@@ -403,7 +396,7 @@ export const getServiceBookings = asyncHandler(
       currentPage: pageNum,
       data: bookings,
     });
-  }
+  },
 );
 
 /**
@@ -457,8 +450,7 @@ export const getServiceBookingById = asyncHandler(
       {
         path: "vehicle",
         populate: {
-          path: "stockConcept",
-          model: "StockConcept",
+          path: "bike",
         },
       },
       { path: "branch", select: "name address phone email hours" },
@@ -468,7 +460,7 @@ export const getServiceBookingById = asyncHandler(
       success: true,
       data: booking,
     });
-  }
+  },
 );
 
 /**
@@ -533,7 +525,7 @@ export const updateBookingStatus = asyncHandler(
 
     const userRole = req.user ? getUserRole(req.user) : "system";
     logger.info(
-      `Service booking ${booking.bookingId} status updated to ${status} by ${userRole}`
+      `Service booking ${booking.bookingId} status updated to ${status} by ${userRole}`,
     );
 
     res.status(200).json({
@@ -545,7 +537,7 @@ export const updateBookingStatus = asyncHandler(
         updatedAt: booking.updatedAt,
       },
     });
-  }
+  },
 );
 
 /**
@@ -610,7 +602,7 @@ export const cancelServiceBooking = asyncHandler(
     logger.info(
       `Service booking ${booking.bookingId} cancelled. Reason: ${
         reason || "Not specified"
-      }`
+      }`,
     );
 
     res.status(200).json({
@@ -622,7 +614,7 @@ export const cancelServiceBooking = asyncHandler(
         cancelledAt: booking.updatedAt,
       },
     });
-  }
+  },
 );
 
 /**
@@ -658,7 +650,7 @@ export const checkTimeSlotAvailability = asyncHandler(
     // Get available time slots using static method
     const availableSlots = await ServiceBookingModel.getAvailableTimeSlots(
       branchId as string,
-      appointmentDate
+      appointmentDate,
     );
 
     res.status(200).json({
@@ -669,7 +661,7 @@ export const checkTimeSlotAvailability = asyncHandler(
         totalAvailable: availableSlots.length,
       },
     });
-  }
+  },
 );
 
 /**
@@ -723,7 +715,7 @@ export const getBranchUpcomingAppointments = asyncHandler(
       count: appointments.length,
       data: appointments,
     });
-  }
+  },
 );
 
 /**
@@ -852,7 +844,7 @@ export const getBookingStats = asyncHandler(
         },
       },
     });
-  }
+  },
 );
 
 /**
@@ -869,7 +861,7 @@ export const getCustomerServiceStats = asyncHandler(
 
     // Get total services used
     const totalServicesUsed = await ServiceBookingModel.getCustomerServiceCount(
-      req.customer._id.toString()
+      req.customer._id.toString(),
     );
 
     // Get used services list
@@ -886,7 +878,7 @@ export const getCustomerServiceStats = asyncHandler(
     const allServices = [...allFreeServices, ...allPaidServices];
 
     const availableServices = allServices.filter(
-      (service) => !usedServiceTypes.includes(service)
+      (service) => !usedServiceTypes.includes(service),
     );
 
     res.status(200).json({
@@ -899,13 +891,13 @@ export const getCustomerServiceStats = asyncHandler(
         availableServices,
         breakdown: {
           freeServicesUsed: usedServiceTypes.filter((s) =>
-            allFreeServices.includes(s)
+            allFreeServices.includes(s),
           ).length,
           paidServicesUsed: usedServiceTypes.filter((s) =>
-            allPaidServices.includes(s)
+            allPaidServices.includes(s),
           ).length,
         },
       },
     });
-  }
+  },
 );

@@ -5,6 +5,8 @@ import logger from "../../utils/logger";
 // Fixed import
 import { BaseCustomerModel } from "../../models/CustomerSystem/BaseCustomer";
 import { CustomerVehicleModel } from "../../models/BikeSystemModel2/CustomerVehicleModel";
+import BikeModel from "../../models/BikeSystemModel/Bikes";
+import BikeImageModel from "../../models/BikeSystemModel/BikeImageModel";
 
 /**
  * @desc    Get all customer vehicles (Admin)
@@ -41,7 +43,7 @@ export const getAllCustomerVehicles = asyncHandler(
       totalPages: Math.ceil(total / limit),
       data: vehicles,
     });
-  }
+  },
 );
 
 /**
@@ -62,20 +64,42 @@ export const getMyVehicles = asyncHandler(
       isActive: true,
     })
       .populate({
-        path: "stockConcept",
+        path: "bike",
         select:
-          "stockId modelName category engineCC color variant yearOfManufacture engineNumber chassisNumber priceInfo",
+          "modelName mainCategory category year variants priceBreakdown engineSize power transmission fuelNorms colors features stockAvailable",
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    console.log("Found vehicles:", vehicles.length);
+    // Get images for each vehicle's bike
+    const vehiclesWithImages = await Promise.all(
+      vehicles.map(async (vehicle) => {
+        const bikeId = vehicle.bike?._id;
+        if (bikeId) {
+          const images = await BikeImageModel.find({
+            bikeId: bikeId,
+            isActive: true,
+          })
+            .sort({ isPrimary: -1, createdAt: 1 })
+            .lean();
+
+          // Add images to bike object
+          if (vehicle.bike) {
+            (vehicle.bike as any).images = images;
+          }
+        }
+        return vehicle;
+      }),
+    );
+
+    console.log("Found vehicles:", vehiclesWithImages.length);
 
     res.status(200).json({
       success: true,
-      count: vehicles.length,
-      data: vehicles,
+      count: vehiclesWithImages.length,
+      data: vehiclesWithImages,
     });
-  }
+  },
 );
 
 /**
@@ -95,9 +119,20 @@ export const getVehicleById = asyncHandler(
     const vehicle = await CustomerVehicleModel.findById(id)
       .populate("customer", "phoneNumber")
       .populate({
-        path: "stockConcept",
+        path: "bike",
         select:
-          "stockId modelName category engineCC color variant yearOfManufacture engineNumber chassisNumber priceInfo",
+          "modelName mainCategory category year variants priceBreakdown engineSize power transmission fuelNorms colors features stockAvailable",
+      })
+      .populate({
+        path: "bikeImages",
+        match: { isActive: true },
+        select: "imageUrl isPrimary caption",
+        options: { sort: { isPrimary: -1, createdAt: -1 } },
+      })
+      .populate({
+        path: "primaryBikeImage",
+        match: { isActive: true, isPrimary: true },
+        select: "imageUrl caption",
       })
       .populate({
         path: "activeValueAddedServices.serviceId",
@@ -122,7 +157,7 @@ export const getVehicleById = asyncHandler(
       success: true,
       data: vehicle,
     });
-  }
+  },
 );
 
 /**
@@ -148,9 +183,8 @@ export const createVehicleFromStock = asyncHandler(
     } = req.body;
 
     // Validate customer exists
-    const customerExists = await BaseCustomerModel.findById(
-      customerPhoneNumber
-    );
+    const customerExists =
+      await BaseCustomerModel.findById(customerPhoneNumber);
     if (!customerExists) {
       res.status(404);
       throw new Error("Customer not found");
@@ -213,7 +247,7 @@ export const createVehicleFromStock = asyncHandler(
       message: "Vehicle created successfully",
       data: vehicle,
     });
-  }
+  },
 );
 
 /**
@@ -248,7 +282,7 @@ export const updateVehicle = asyncHandler(
       if (duplicate) {
         res.status(400);
         throw new Error(
-          "Another vehicle with this number plate already exists"
+          "Another vehicle with this number plate already exists",
         );
       }
     }
@@ -268,7 +302,7 @@ export const updateVehicle = asyncHandler(
     const updatedVehicle = await CustomerVehicleModel.findByIdAndUpdate(
       id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).populate("customer", "phoneNumber");
 
     logger.info(`Vehicle updated by admin`);
@@ -278,7 +312,7 @@ export const updateVehicle = asyncHandler(
       message: "Vehicle updated successfully",
       data: updatedVehicle,
     });
-  }
+  },
 );
 
 /**
@@ -298,7 +332,7 @@ export const deleteVehicle = asyncHandler(
     const vehicle = await CustomerVehicleModel.findByIdAndUpdate(
       id,
       { isActive: false },
-      { new: true }
+      { new: true },
     );
 
     if (!vehicle) {
@@ -312,7 +346,7 @@ export const deleteVehicle = asyncHandler(
       success: true,
       message: "Vehicle deleted successfully",
     });
-  }
+  },
 );
 
 /**
@@ -339,7 +373,7 @@ export const updateServiceStatus = asyncHandler(
 
     const updatedVehicle = await CustomerVehicleModel.findById(id).populate(
       "customer",
-      "phoneNumber"
+      "phoneNumber",
     );
 
     res.status(200).json({
@@ -347,7 +381,7 @@ export const updateServiceStatus = asyncHandler(
       message: "Service status updated successfully",
       data: updatedVehicle,
     });
-  }
+  },
 );
 
 /**
@@ -382,7 +416,7 @@ export const getServiceDueVehicles = asyncHandler(
       count: vehicles.length,
       data: vehicles,
     });
-  }
+  },
 );
 
 /**
@@ -425,14 +459,14 @@ export const getVehicleStats = asyncHandler(
             ...acc,
             [curr._id]: curr.count,
           }),
-          {}
+          {},
         ),
         insuranceStats: insuranceStats.reduce(
           (acc: Record<string, number>, curr) => ({
             ...acc,
             [curr._id ? "insured" : "notInsured"]: curr.count,
           }),
-          {}
+          {},
         ),
         paymentStats: paymentStats.reduce(
           (acc: Record<string, number>, curr) => ({
@@ -440,11 +474,11 @@ export const getVehicleStats = asyncHandler(
             [`paid_${curr._id.isPaid}_finance_${curr._id.isFinance}`]:
               curr.count,
           }),
-          {}
+          {},
         ),
       },
     });
-  }
+  },
 );
 
 /**
@@ -477,7 +511,7 @@ export const transferVehicle = asyncHandler(
         customer: newCustomerId,
         registeredOwnerName: newOwnerName || undefined,
       },
-      { new: true }
+      { new: true },
     ).populate("customer", "phoneNumber");
 
     if (!vehicle) {
@@ -492,7 +526,7 @@ export const transferVehicle = asyncHandler(
       message: "Vehicle ownership transferred successfully",
       data: vehicle,
     });
-  }
+  },
 );
 /**
  * @desc    Get vehicles associated with a customer phone number
@@ -529,9 +563,9 @@ export const getVehiclesByPhone = asyncHandler(
       isActive: true,
     })
       .populate({
-        path: "stockConcept",
+        path: "bike",
         select:
-          "stockId modelName category engineCC color variant yearOfManufacture engineNumber chassisNumber priceInfo",
+          "modelName mainCategory category year variants priceBreakdown engineSize power transmission fuelNorms colors features stockAvailable",
       })
       .populate({
         path: "activeValueAddedServices.serviceId",
@@ -550,5 +584,5 @@ export const getVehiclesByPhone = asyncHandler(
       count: vehicles.length,
       data: vehicles,
     });
-  }
+  },
 );

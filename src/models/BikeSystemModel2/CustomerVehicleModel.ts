@@ -5,8 +5,7 @@ export interface ICustomerVehicle extends Document {
   _id: string;
 
   // Core references
-  stockConcept: mongoose.Types.ObjectId;
-  stockType: "StockConcept" | "StockConceptCSV";
+  bike: mongoose.Types.ObjectId;
   customer: mongoose.Types.ObjectId;
 
   // Ownership essentials
@@ -54,16 +53,11 @@ export interface ICustomerVehicle extends Document {
 const customerVehicleSchema = new Schema<ICustomerVehicle>(
   {
     // Core references
-    stockConcept: {
+    bike: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "StockConcept",
-      required: [true, "Stock concept reference is required"],
+      ref: "Bikes",
+      required: [true, "Bike reference is required"],
       index: true,
-    },
-    stockType: {
-      type: String,
-      enum: ["StockConcept", "StockConceptCSV"], // add "StockConceptCSV"
-      required: true,
     },
 
     customer: {
@@ -208,33 +202,33 @@ const customerVehicleSchema = new Schema<ICustomerVehicle>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes
 customerVehicleSchema.index({ "activeValueAddedServices.serviceId": 1 });
 customerVehicleSchema.index({ "serviceStatus.nextServiceDue": 1 });
 
-// Virtual: vehicle details from StockConcept
-customerVehicleSchema.virtual("vehicleDetails", {
-  ref: "StockConcept",
-  localField: "stockConcept",
+// Virtual: bike details from Bikes model
+customerVehicleSchema.virtual("bikeDetails", {
+  ref: "Bikes",
+  localField: "bike",
   foreignField: "_id",
   justOne: true,
 });
 
-// Virtual: bike images
-customerVehicleSchema.virtual("motorcycleImages", {
+// Virtual: bike images from BikeImage model
+customerVehicleSchema.virtual("bikeImages", {
   ref: "BikeImage",
-  localField: "stockConcept",
+  localField: "bike",
   foreignField: "bikeId",
   options: { sort: { isPrimary: -1, createdAt: -1 } },
 });
 
 // Virtual: primary bike image
-customerVehicleSchema.virtual("primaryMotorcycleImage", {
+customerVehicleSchema.virtual("primaryBikeImage", {
   ref: "BikeImage",
-  localField: "stockConcept",
+  localField: "bike",
   foreignField: "bikeId",
   justOne: true,
   options: {
@@ -248,5 +242,5 @@ customerVehicleSchema.set("toObject", { virtuals: true });
 
 export const CustomerVehicleModel = mongoose.model<ICustomerVehicle>(
   "CustomerVehicle",
-  customerVehicleSchema
+  customerVehicleSchema,
 );
