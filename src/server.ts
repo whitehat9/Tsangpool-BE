@@ -9,6 +9,7 @@ import { errorHandler, routeNotFound } from "./middleware/errorMiddleware";
 import auth from "./routes/auth";
 import bikes from "./routes/BikeSystemRoutes/bikes.routes";
 import bikeImages from "./routes/BikeSystemRoutes/bikeImages.routes";
+import bikeManagement from "./routes/BikeSystemRoutes2/bikeManagement";
 import enquiryRoutes from "./routes/enquiryForm";
 import branchRoutes from "./routes/branches";
 import cloudinaryRoutes from "./routes/cloudinary";
@@ -20,8 +21,6 @@ import customerProfile from "./routes/customerRoutes/customerProfile";
 import serviceBookingRoutes from "./routes/customerRoutes/serviceBooking";
 import valueAddedServicesRoutes from "./routes/BikeSystemRoutes2/VAS";
 import vehicleInfoRoutes from "./routes/BikeSystemRoutes2/CustomerVehicleRoutes";
-import stockConceptRoutes from "./routes/BikeSystemRoutes2/stockConcept";
-import csvStockImportRoutes from "./routes/BikeSystemRoutes3/csvStock";
 import accidentReports from "./routes/AdminFeature/accidentReport";
 //
 import scanfleetRoutes from "./routes/Scanfleet/routes.scanfleet";
@@ -72,9 +71,8 @@ app.use("/api/branch", branchRoutes);
 // Bike System
 app.use("/api/bikes", bikes);
 app.use("/api/bike-images", bikeImages);
-app.use("/api/stock-concept", stockConceptRoutes);
+app.use("/api/admin/bike-management", bikeManagement);
 app.use("/api/value-added-services", valueAddedServicesRoutes);
-app.use("/api/csv-stock", csvStockImportRoutes);
 
 // Customer System
 app.use("/api/customer", customerRoutes);
