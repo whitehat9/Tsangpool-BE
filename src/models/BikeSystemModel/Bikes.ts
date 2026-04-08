@@ -215,7 +215,7 @@ const BikesSchema = new Schema<IBikesDocument>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // Pre-save middleware to calculate on-road price
@@ -251,29 +251,6 @@ BikesSchema.index({ isActive: 1 });
 BikesSchema.index({ fuelNorms: 1 });
 BikesSchema.index({ isE20Efficiency: 1 });
 BikesSchema.index({ "priceBreakdown.onRoadPrice": 1 });
-
-// Virtual: bike images from BikeImage model
-BikesSchema.virtual("bikeImages", {
-  ref: "BikeImage",
-  localField: "_id",
-  foreignField: "bikeId",
-  options: { sort: { isPrimary: -1, createdAt: -1 } },
-});
-
-// Virtual: primary bike image
-BikesSchema.virtual("primaryBikeImage", {
-  ref: "BikeImage",
-  localField: "_id",
-  foreignField: "bikeId",
-  justOne: true,
-  options: {
-    match: { isPrimary: true },
-    sort: { createdAt: -1 },
-  },
-});
-
-BikesSchema.set("toJSON", { virtuals: true });
-BikesSchema.set("toObject", { virtuals: true });
 
 const BikeModel = mongoose.model<IBikesDocument>("Bikes", BikesSchema);
 export default BikeModel;
