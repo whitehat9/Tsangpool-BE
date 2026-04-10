@@ -25,6 +25,7 @@ import csvStockImportRoutes from "./routes/BikeSystemRoutes3/csvStock";
 import accidentReports from "./routes/AdminFeature/accidentReport";
 //
 import scanfleetRoutes from "./routes/Scanfleet/routes.scanfleet";
+import googlePlacesRoutes from "./routes/googlePlaces";
 
 dotenv.config();
 
@@ -92,6 +93,7 @@ app.use("/api/visitor", visitorRoutes);
 
 //Third Party
 app.use("/api/scanfleet", scanfleetRoutes);
+app.use("/api/google-places", googlePlacesRoutes);
 
 // Global error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
