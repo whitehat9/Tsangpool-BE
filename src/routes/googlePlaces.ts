@@ -5,7 +5,7 @@ const router = Router();
 
 // Google Places API configuration
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
-const PLACES_API_BASE_URL = "https://maps.googleapis.com/maps/api";
+const PLACES_API_NEW_BASE_URL = "https://places.googleapis.com/v1";
 
 if (!GOOGLE_PLACES_API_KEY) {
   console.warn(
@@ -37,198 +37,265 @@ const checkRateLimit = (req: Request): boolean => {
   return true;
 };
 
-// Get place details
-router.get("/place-details", async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!checkRateLimit(req)) {
-      res.status(429).json({
-        success: false,
-        error: "Too many requests. Please try again later.",
+// Get place details (using Places API New)
+router.get(
+  "/place-details",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!checkRateLimit(req)) {
+        res.status(429).json({
+          success: false,
+          error: "Too many requests. Please try again later.",
+        });
+        return;
+      }
+
+      const { place_id } = req.query;
+
+      if (!place_id) {
+        res.status(400).json({
+          success: false,
+          error: "place_id parameter is required",
+        });
+        return;
+      }
+
+      if (!GOOGLE_PLACES_API_KEY) {
+        res.status(500).json({
+          success: false,
+          error: "Google Places API is not configured on the server",
+        });
+        return;
+      }
+
+      const apiUrl = `${PLACES_API_NEW_BASE_URL}/places/${place_id as string}`;
+
+      // Define field mask for the fields we need
+      // See: https://developers.google.com/maps/documentation/places/web-service/place-details#fieldmask
+      // Essential fields to reduce costs
+      const fieldMask =
+        "displayName,rating,reviews,userRatingCount,formattedAddress,photos";
+
+      const response = await axios.get<any>(apiUrl, {
+        headers: {
+          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+          "X-Goog-FieldMask": fieldMask,
+          Referer: "http://localhost:5173", // Matches your frontend URL
+        },
       });
-      return;
-    }
 
-    const { place_id, fields } = req.query;
+      // Map New API response to Legacy API format
+      const result = response.data;
+      const mappedResult = {
+        place_id: result.id || (place_id as string),
+        name: result.displayName?.text || "",
+        formatted_address: result.formattedAddress || "",
+        rating: result.rating || 0,
+        user_ratings_total: result.userRatingCount || 0,
+        reviews:
+          result.reviews?.map((r: any) => ({
+            author_name: r.authorAttribution?.displayName || "Anonymous",
+            rating: r.rating || 0,
+            relative_time_description: r.relativePublishTimeDescription || "",
+            text: r.text?.text || "",
+            time: r.publishTime
+              ? Math.floor(new Date(r.publishTime).getTime() / 1000)
+              : 0,
+          })) || [],
+        photos:
+          result.photos?.map((p: any) => ({
+            photo_reference: p.name,
+            width: p.widthPx,
+            height: p.heightPx,
+          })) || [],
+      };
 
-    if (!place_id) {
-      res.status(400).json({
-        success: false,
-        error: "place_id parameter is required",
+      res.json({
+        success: true,
+        data: mappedResult,
       });
-      return;
-    }
+    } catch (error: any) {
+      const apiError = error.response?.data?.error;
+      if (apiError) {
+        console.error(
+          "Google Places API Error Details:",
+          JSON.stringify(apiError, null, 2),
+        );
+      }
 
-    if (!GOOGLE_PLACES_API_KEY) {
+      res.status(error.response?.status || 500).json({
+        success: false,
+        error: "Failed to fetch place details",
+        message: apiError?.message || error.message || "Unknown error",
+        status: apiError?.status || "INTERNAL",
+      });
+    }
+  },
+);
+
+// Get autocomplete suggestions (using Places API New)
+router.get(
+  "/autocomplete",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!checkRateLimit(req)) {
+        res.status(429).json({
+          success: false,
+          error: "Too many requests. Please try again later.",
+        });
+        return;
+      }
+
+      const { input } = req.query;
+
+      if (!input) {
+        res.status(400).json({
+          success: false,
+          error: "input parameter is required",
+        });
+        return;
+      }
+
+      if (!GOOGLE_PLACES_API_KEY) {
+        res.status(500).json({
+          success: false,
+          error: "Google Places API is not configured on the server",
+        });
+        return;
+      }
+
+      const apiUrl = `${PLACES_API_NEW_BASE_URL}/places:autocomplete`;
+
+      const response = await axios.post<any>(
+        apiUrl,
+        {
+          input: input as string,
+          includedPrimaryTypes: ["car_dealer", "establishment"],
+        },
+        {
+          headers: {
+            "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+            Referer: "http://localhost:5173",
+          },
+        },
+      );
+
+      // Map to legacy format
+      const suggestions = response.data.suggestions?.map((s: any) => ({
+        place_id: s.placePrediction?.placeId,
+        description: s.placePrediction?.text?.text,
+        structured_formatting: {
+          main_text: s.placePrediction?.structuredFormat?.mainText?.text,
+          secondary_text:
+            s.placePrediction?.structuredFormat?.secondaryText?.text,
+        },
+      }));
+
+      res.json({
+        success: true,
+        data: suggestions || [],
+      });
+    } catch (error) {
+      console.error("Error fetching autocomplete suggestions:", error);
       res.status(500).json({
         success: false,
-        error: "Google Places API is not configured on the server",
+        error: "Failed to fetch autocomplete suggestions",
+        message: error instanceof Error ? error.message : "Unknown error",
       });
-      return;
     }
+  },
+);
 
-    const defaultFields =
-      "name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,geometry,opening_hours,photos";
-    const requestedFields = fields || defaultFields;
+// Search nearby places (using Places API New)
+router.get(
+  "/nearbysearch",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!checkRateLimit(req)) {
+        res.status(429).json({
+          success: false,
+          error: "Too many requests. Please try again later.",
+        });
+        return;
+      }
 
-    const apiUrl = `${PLACES_API_BASE_URL}/place/details/json?place_id=${encodeURIComponent(place_id as string)}&fields=${encodeURIComponent(requestedFields as string)}&key=${GOOGLE_PLACES_API_KEY}`;
+      const { location, radius, type } = req.query;
 
-    const response = await axios.get<any>(apiUrl);
+      if (!location) {
+        res.status(400).json({
+          success: false,
+          error: "location parameter is required (format: lat,lng)",
+        });
+        return;
+      }
 
-    if (response.data.status !== "OK") {
-      res.status(400).json({
-        success: false,
-        error: `Google Places API error: ${response.data.status}`,
-        message: response.data.error_message || "Unknown error",
+      if (!GOOGLE_PLACES_API_KEY) {
+        res.status(500).json({
+          success: false,
+          error: "Google Places API is not configured on the server",
+        });
+        return;
+      }
+
+      const [lat, lng] = (location as string).split(",").map(Number);
+      const apiUrl = `${PLACES_API_NEW_BASE_URL}/places:searchNearby`;
+
+      const response = await axios.post<any>(
+        apiUrl,
+        {
+          includedTypes: [type || "car_dealer"],
+          maxResultCount: 20,
+          locationRestriction: {
+            circle: {
+              center: { latitude: lat, longitude: lng },
+              radius: Number(radius) || 5000,
+            },
+          },
+        },
+        {
+          headers: {
+            "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+            "X-Goog-FieldMask":
+              "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location,places.currentOpeningHours,places.photos",
+            Referer: "http://localhost:5173",
+          },
+        },
+      );
+
+      // Map to legacy format
+      const results = response.data.places?.map((p: any) => ({
+        place_id: p.id,
+        name: p.displayName?.text || "",
+        formatted_address: p.formattedAddress,
+        rating: p.rating,
+        user_ratings_total: p.userRatingCount,
+        geometry: {
+          location: p.location,
+        },
+        opening_hours: {
+          open_now: p.currentOpeningHours?.openNow,
+        },
+        photos: p.photos?.map((photo: any) => ({
+          photo_reference: photo.name,
+        })),
+      }));
+
+      res.json({
+        success: true,
+        data: results || [],
       });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: response.data.result,
-    });
-  } catch (error) {
-    console.error("Error fetching place details:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch place details",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-// Get autocomplete suggestions
-router.get("/autocomplete", async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!checkRateLimit(req)) {
-      res.status(429).json({
-        success: false,
-        error: "Too many requests. Please try again later.",
-      });
-      return;
-    }
-
-    const { input, types, components } = req.query;
-
-    if (!input) {
-      res.status(400).json({
-        success: false,
-        error: "input parameter is required",
-      });
-      return;
-    }
-
-    if (!GOOGLE_PLACES_API_KEY) {
+    } catch (error) {
+      console.error("Error searching nearby places:", error);
       res.status(500).json({
         success: false,
-        error: "Google Places API is not configured on the server",
+        error: "Failed to search nearby places",
+        message: error instanceof Error ? error.message : "Unknown error",
       });
-      return;
     }
+  },
+);
 
-    const defaultTypes = "establishment";
-    const requestedTypes = types || defaultTypes;
-
-    let apiUrl = `${PLACES_API_BASE_URL}/place/autocomplete/json?input=${encodeURIComponent(input as string)}&types=${encodeURIComponent(requestedTypes as string)}&key=${GOOGLE_PLACES_API_KEY}`;
-
-    if (components) {
-      apiUrl += `&components=${encodeURIComponent(components as string)}`;
-    }
-
-    const response = await axios.get<any>(apiUrl);
-
-    if (response.data.status !== "OK") {
-      res.status(400).json({
-        success: false,
-        error: `Google Places API error: ${response.data.status}`,
-        message: response.data.error_message || "Unknown error",
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: response.data.predictions,
-    });
-  } catch (error) {
-    console.error("Error fetching autocomplete suggestions:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch autocomplete suggestions",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-// Search nearby places
-router.get("/nearbysearch", async (req: Request, res: Response): Promise<void> => {
-  try {
-    if (!checkRateLimit(req)) {
-      res.status(429).json({
-        success: false,
-        error: "Too many requests. Please try again later.",
-      });
-      return;
-    }
-
-    const { location, radius, type, keyword } = req.query;
-
-    if (!location) {
-      res.status(400).json({
-        success: false,
-        error: "location parameter is required (format: lat,lng)",
-      });
-      return;
-    }
-
-    if (!GOOGLE_PLACES_API_KEY) {
-      res.status(500).json({
-        success: false,
-        error: "Google Places API is not configured on the server",
-      });
-      return;
-    }
-
-    const defaultRadius = 5000; // 5km
-    const defaultType = "car_dealer";
-    const requestedRadius = radius ? parseInt(radius as string) : defaultRadius;
-    const requestedType = type || defaultType;
-
-    let apiUrl = `${PLACES_API_BASE_URL}/place/nearbysearch/json?location=${encodeURIComponent(location as string)}&radius=${requestedRadius}&type=${requestedType}&key=${GOOGLE_PLACES_API_KEY}`;
-
-    if (keyword) {
-      apiUrl += `&keyword=${encodeURIComponent(keyword as string)}`;
-    }
-
-    const response = await axios.get<any>(apiUrl);
-
-    if (
-      response.data.status !== "OK" &&
-      response.data.status !== "ZERO_RESULTS"
-    ) {
-      res.status(400).json({
-        success: false,
-        error: `Google Places API error: ${response.data.status}`,
-        message: response.data.error_message || "Unknown error",
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: response.data.results || [],
-    });
-  } catch (error) {
-    console.error("Error searching nearby places:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to search nearby places",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-// Get photo URL (this returns a proxied image)
+// Get photo (using Places API New)
 router.get("/photo", async (req: Request, res: Response): Promise<void> => {
   try {
     if (!checkRateLimit(req)) {
@@ -257,15 +324,17 @@ router.get("/photo", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const defaultMaxWidth = 400;
-    const requestedMaxWidth = maxwidth
-      ? parseInt(maxwidth as string)
-      : defaultMaxWidth;
+    // In New API, the photo reference IS the resource name (places/PLACE_ID/photos/PHOTO_ID)
+    // Or it might be what we got from previous response
+    const photoResourceName = photoreference as string;
+    const maxWidthPx = Number(maxwidth) || 400;
 
-    const photoUrl = `${PLACES_API_BASE_URL}/place/photo?maxwidth=${requestedMaxWidth}&photoreference=${encodeURIComponent(photoreference as string)}&key=${GOOGLE_PLACES_API_KEY}`;
+    const apiUrl = `https://places.googleapis.com/v1/${photoResourceName}/media?maxWidthPx=${maxWidthPx}&key=${GOOGLE_PLACES_API_KEY}`;
 
     // Fetch image and proxy it
-    const response = await axios.get<any>(photoUrl, { responseType: "arraybuffer" });
+    const response = await axios.get<any>(apiUrl, {
+      responseType: "arraybuffer",
+    });
 
     res.set({
       "Content-Type": response.headers["content-type"],
