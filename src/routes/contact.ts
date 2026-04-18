@@ -19,7 +19,7 @@ router.post(
   "/send",
   verifyRecaptchaV2,
   formLimiter, // Rate limit contact form submissions
-  sendMessage
+  sendMessage,
 );
 
 // Protected routes (Admin only)
