@@ -8,7 +8,6 @@ import {
   markAsRead,
   sendMessage,
 } from "../controllers/contact.controller";
-import { verifyRecaptchaV2 } from "../middleware/recaptchaMiddleware";
 import { protect } from "../middleware/authmiddleware";
 import { formLimiter } from "../middleware/phoneNoValidation";
 
@@ -17,7 +16,6 @@ const router = express.Router();
 // Public routes
 router.post(
   "/send",
-  verifyRecaptchaV2,
   formLimiter, // Rate limit contact form submissions
   sendMessage,
 );
