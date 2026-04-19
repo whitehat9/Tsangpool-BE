@@ -239,3 +239,37 @@ export const getAllBranchManagers = asyncHandler(
     });
   },
 );
+
+/**
+ * @desc    Get branch manager with password
+ * @route   GET /api/adminLogin/branch-manager/:id/password
+ * @access  Private (Super-Admin only)
+ */
+export const getBranchManagerPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      throw new Error("Invalid branch manager ID");
+    }
+
+    const branchManager = await BranchManager.findById(id)
+      .select("+password")
+      .populate("branch", "branchName address");
+
+    if (!branchManager) {
+      res.status(404);
+      throw new Error("Branch manager not found");
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        applicationId: branchManager.applicationId,
+        password: branchManager.password,
+        branch: branchManager.branch,
+      },
+    });
+  },
+);

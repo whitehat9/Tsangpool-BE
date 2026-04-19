@@ -2,19 +2,6 @@
 import { Request, Response, NextFunction } from "express";
 
 import logger from "../utils/logger";
-import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterprise";
-
-interface RecaptchaAssessment {
-  tokenProperties: {
-    valid: boolean;
-    invalidReason?: string;
-    action: string;
-  };
-  riskAnalysis: {
-    score: number;
-    reasons: string[];
-  };
-}
 
 export const verifyRecaptchaV2 = async (
   req: Request,
@@ -22,8 +9,10 @@ export const verifyRecaptchaV2 = async (
   next: NextFunction,
 ): Promise<void> => {
   const token = req.body.recaptchaToken;
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+
   // Bypass in development
-  if (process.env.NODE_ENV === "development" || token === "dev-bypass") {
+  if (process.env.NODE_ENV === "development" || token === "test_token") {
     logger.info("reCAPTCHA bypassed in development mode");
     next();
     return;
@@ -37,70 +26,43 @@ export const verifyRecaptchaV2 = async (
     return;
   }
 
+  if (!secretKey) {
+    logger.error("Missing RECAPTCHA_SECRET_KEY env var");
+    res
+      .status(500)
+      .json({ success: false, message: "Server misconfiguration" });
+    return;
+  }
+
   try {
-    const projectId = process.env.RECAPTCHA_PROJECT_ID;
-    const siteKey = process.env.RECAPTCHA_SITE_KEY;
+    // Verify reCAPTCHA v2 token with Google
+    const verificationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
 
-    if (!projectId || !siteKey) {
-      logger.error("Missing RECAPTCHA_PROJECT_ID or RECAPTCHA_SITE_KEY env vars");
-      res.status(500).json({ success: false, message: "Server misconfiguration" });
-      return;
-    }
+    const response = await fetch(verificationUrl, {
+      method: "POST",
+    });
 
-    // Create reCAPTCHA Enterprise client
-    const client = new RecaptchaEnterpriseServiceClient();
-    const projectPath = client.projectPath(projectId);
+    const data = await response.json();
 
-    // Build the assessment request
-    const request = {
-      assessment: {
-        event: {
-          token: token,
-          siteKey: siteKey,
-        },
-      },
-      parent: projectPath,
-    };
-
-    // Create assessment
-    const [response] = await client.createAssessment(request);
-
-    // Check if the token is valid
-    if (!response.tokenProperties || !response.tokenProperties.valid) {
-      logger.warn("reCAPTCHA Enterprise token invalid", {
-        invalidReason: response.tokenProperties?.invalidReason,
+    if (!data.success) {
+      logger.warn("reCAPTCHA v2 verification failed", {
+        errorCodes: data["error-codes"],
       });
       res.status(400).json({
         success: false,
         message: "Invalid reCAPTCHA token",
-        reason: response.tokenProperties?.invalidReason,
+        errorCodes: data["error-codes"],
       });
       return;
     }
 
-    // Check if the expected action was executed
-    if (response.tokenProperties.action !== "submit") {
-      logger.warn("reCAPTCHA Enterprise action mismatch", {
-        expectedAction: "submit",
-        actualAction: response.tokenProperties.action,
-      });
-      res.status(400).json({
-        success: false,
-        message: "reCAPTCHA action mismatch",
-      });
-      return;
-    }
-
-    // Get the risk score (optional: you can set a threshold)
-    const score = response.riskAnalysis?.score || 0;
-    logger.info("reCAPTCHA Enterprise verification successful", {
-      score,
-      reasons: response.riskAnalysis?.reasons || [],
+    logger.info("reCAPTCHA v2 verification successful", {
+      hostname: data.hostname,
     });
 
     next();
   } catch (error) {
-    logger.error("reCAPTCHA Enterprise verification error:", error);
+    logger.error("reCAPTCHA v2 verification error:", error);
     res.status(500).json({
       success: false,
       message: "reCAPTCHA verification error",
