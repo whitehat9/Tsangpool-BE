@@ -5,6 +5,7 @@ import {
   createBranchM,
   deleteBranchM,
   getAllBranchManagers,
+  getBranchManagerPassword,
 } from "../controllers/auth.controller";
 import seedAdmin from "../AdminPrivilege/seeder";
 import { authorize, protect } from "../middleware/authmiddleware";
@@ -27,14 +28,14 @@ router.post(
   "/super-ad-logout",
   protect,
   authorize("Super-Admin"),
-  logoutSuperAdmin
+  logoutSuperAdmin,
 );
 
 router.post(
   "/branchM-logout",
   protect,
   authorize("Branch-Admin"),
-  logoutBranchM
+  logoutBranchM,
 );
 
 // ===== BRANCH MANAGER MANAGEMENT (Super-Admin only) =====
@@ -42,21 +43,27 @@ router.post(
   "/create-branchM",
   protect,
   authorize("Super-Admin"),
-  createBranchM
+  createBranchM,
 );
 
 router.get(
   "/branch-managers",
   protect,
   authorize("Super-Admin"),
-  getAllBranchManagers
+  getAllBranchManagers,
 );
 
 router.delete(
   "/del-branchM/:id",
   protect,
   authorize("Super-Admin"),
-  deleteBranchM
+  deleteBranchM,
+);
+router.get(
+  "/branch-manager/:id/password",
+  protect,
+  authorize("Super-Admin"),
+  getBranchManagerPassword,
 );
 
 export default router;
