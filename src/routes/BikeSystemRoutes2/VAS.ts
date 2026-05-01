@@ -9,10 +9,10 @@ import {
   getCustomerActiveServices,
   getServicesByType,
   getCustomersWithActiveVAS,
-} from "../../controllers/BikeSystemController2/vas.controller";
+} from "../../controllers/VASnStock/vas.controller";
 import { authorize, protect } from "../../middleware/authmiddleware";
 import { protectCustomer } from "../../middleware/customerMiddleware";
-import { activateCustomerService } from "../../controllers/BikeSystemController2/AssignToCustomer/vasAssign";
+import { activateCustomerService } from "../../controllers/VASnStock/AssignToCustomer/vasAssign";
 
 const router = express.Router();
 // "/api/value-added-services"

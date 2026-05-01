@@ -1,6 +1,6 @@
 // src/routes/getapproved.ts
 import express from "express";
-import { authorize, protect } from "../middleware/authmiddleware";
+import { authorize, protect } from "../../middleware/authmiddleware";
 
 import {
   checkApplicationStatus,
@@ -16,7 +16,7 @@ import {
   updateBikeEnquiry,
   // getBikeRecommendations,
   getEnquiryStats,
-} from "../controllers/getapproved.controller";
+} from "../../controllers/CustomerRequest/getapproved.controller";
 
 const router = express.Router();
 // "/api/getapproved"
@@ -32,28 +32,28 @@ router.get(
   "/stats",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getApplicationStats
+  getApplicationStats,
 );
 
 router.get(
   "/enquiry-stats",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getEnquiryStats
+  getEnquiryStats,
 );
 
 router.get(
   "/with-bikes",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getApplicationsWithBikes
+  getApplicationsWithBikes,
 );
 
 router.get(
   "/all",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getAllApplications
+  getAllApplications,
 );
 
 // Branch-specific routes
@@ -61,7 +61,7 @@ router.get(
   "/branch/:branchId",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getApplicationsByBranch
+  getApplicationsByBranch,
 );
 
 // Dynamic parameter routes - THESE MUST COME LAST
@@ -71,20 +71,20 @@ router.put(
   "/:id/status",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  updateApplicationStatus
+  updateApplicationStatus,
 );
 
 router.put(
   "/:id/bike-enquiry",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  updateBikeEnquiry
+  updateBikeEnquiry,
 );
 
 router.get(
   "/:id/bike-recommendations",
   protect,
-  authorize("Super-Admin", "Branch-Admin")
+  authorize("Super-Admin", "Branch-Admin"),
   // getBikeRecommendations
 );
 

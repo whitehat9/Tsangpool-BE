@@ -2,8 +2,8 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 
-import logger from "../utils/logger";
-import ContactModel from "../models/Contact";
+import logger from "../../utils/logger";
+import ContactModel from "../../models/Contact";
 
 /**
  * @desc    Create new contact message
@@ -44,7 +44,7 @@ export const sendMessage = asyncHandler(
         createdAt: contactMessage.createdAt,
       },
     });
-  }
+  },
 );
 
 /**
@@ -85,7 +85,7 @@ export const getMessages = asyncHandler(
       },
       unreadCount,
     });
-  }
+  },
 );
 
 /**
@@ -126,7 +126,7 @@ export const getMessageById = asyncHandler(
       success: true,
       data: message,
     });
-  }
+  },
 );
 
 /**
@@ -150,7 +150,7 @@ export const markAsRead = asyncHandler(
     const message = await ContactModel.findByIdAndUpdate(
       id,
       { isRead: isRead ?? true },
-      { new: true }
+      { new: true },
     );
 
     if (!message) {
@@ -164,7 +164,7 @@ export const markAsRead = asyncHandler(
     logger.info(
       `Message ${isRead ? "marked as read" : "marked as unread"}: ${
         message._id
-      } `
+      } `,
     );
 
     res.status(200).json({
@@ -172,7 +172,7 @@ export const markAsRead = asyncHandler(
       message: `Message ${isRead ? "marked as read" : "marked as unread"}`,
       data: message,
     });
-  }
+  },
 );
 
 /**
@@ -210,5 +210,5 @@ export const deleteMessage = asyncHandler(
       success: true,
       message: "Message deleted successfully",
     });
-  }
+  },
 );

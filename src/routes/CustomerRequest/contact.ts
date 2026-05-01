@@ -1,15 +1,15 @@
 // src/routes/contact.ts
 import express from "express";
 
+import { protect } from "../../middleware/authmiddleware";
+import { formLimiter } from "../../middleware/phoneNoValidation";
 import {
+  sendMessage,
   deleteMessage,
   getMessageById,
   getMessages,
   markAsRead,
-  sendMessage,
-} from "../controllers/contact.controller";
-import { protect } from "../middleware/authmiddleware";
-import { formLimiter } from "../middleware/phoneNoValidation";
+} from "../../controllers/CustomerRequest/contact.controller";
 
 const router = express.Router();
 

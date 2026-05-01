@@ -1,22 +1,22 @@
 // auth.controller.ts
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
-import Admin from "../models/Admin";
-import logger from "../utils/logger";
+import Admin from "../../models/Admin";
+import logger from "../../utils/logger";
 import dotenv from "dotenv";
-import BranchManager from "../models/BranchManager";
-import Branch from "../models/Branch";
+import BranchManager from "../../models/BranchManager";
+import Branch from "../../models/Branch";
 import mongoose from "mongoose";
 import {
   generateApplicationId,
   generateRandomPassword,
-} from "../utils/generateID";
+} from "../../utils/generateID";
 import {
   isAdmin,
   isBranchManager,
   getUserRole,
   getUserBranch,
-} from "../types/user.types";
+} from "../../types/user.types";
 
 dotenv.config();
 
@@ -229,7 +229,7 @@ export const deleteBranchM = asyncHandler(
 export const getAllBranchManagers = asyncHandler(
   async (req: Request, res: Response) => {
     const branchManagers = await BranchManager.find()
-      .populate("branch", "name address")
+      .populate("branch", "branchName address")
       .populate("createdBy", "name email");
 
     res.status(200).json({

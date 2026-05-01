@@ -1,7 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
-import BranchManager from "../models/BranchManager";
-import logger from "../utils/logger";
+import BranchManager from "../../models/BranchManager";
+import logger from "../../utils/logger";
+
 /**
  * @desc    Login Branch Manager
  * @route   POST /api/adminLogin/branchM-login
@@ -36,7 +37,7 @@ export const loginBranchM = asyncHandler(
     }
 
     // Populate branch details
-    await branchManager.populate("branch", "name address");
+    await branchManager.populate("branch", "branchName address");
 
     // Generate token
     const token = branchManager.getSignedJwtToken();
