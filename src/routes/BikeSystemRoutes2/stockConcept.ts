@@ -6,8 +6,8 @@ import {
   getMyVehicles,
   getStockItemById,
   getVehicleById,
-} from "../../controllers/BikeSystemController2/stockConcept.controller";
-import { activateToCustomer } from "../../controllers/BikeSystemController2/AssignToCustomer/StockAssign";
+} from "../../controllers/VASnStock/stockConcept.controller";
+import { activateToCustomer } from "../../controllers/VASnStock/AssignToCustomer/StockAssign";
 import {
   protectAdminOrCustomer,
   protectCustomer,
@@ -22,7 +22,7 @@ router.post(
   "/",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  createStockItem
+  createStockItem,
 );
 
 // Get all stock items with filtering
@@ -30,7 +30,7 @@ router.get(
   "/",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getAllStockItems
+  getAllStockItems,
 );
 
 // Assign stock item to customer
@@ -38,7 +38,7 @@ router.post(
   "/:id/activate",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  activateToCustomer
+  activateToCustomer,
 );
 
 // Get stock item by ID
@@ -46,7 +46,7 @@ router.get(
   "/:id",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getStockItemById
+  getStockItemById,
 );
 
 export default router;

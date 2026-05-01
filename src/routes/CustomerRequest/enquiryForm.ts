@@ -1,13 +1,13 @@
 // routes/enquiry.routes.ts
 import express from "express";
-import { authorize, protect } from "../middleware/authmiddleware";
+import { authorize, protect } from "../../middleware/authmiddleware";
 import {
   createEnquiry,
   deleteEnquiry,
   getAllEnquiries,
   getEnquiryById,
   getEnquiryStats,
-} from "../controllers/enquiry.controller";
+} from "../../controllers/CustomerRequest/enquiry.controller";
 
 const router = express.Router();
 
@@ -19,21 +19,21 @@ router.get(
   "/",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getAllEnquiries
+  getAllEnquiries,
 );
 
 router.get(
   "/stats",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getEnquiryStats
+  getEnquiryStats,
 );
 
 router.get(
   "/:id",
   protect,
   authorize("Super-Admin", "Branch-Admin"),
-  getEnquiryById
+  getEnquiryById,
 );
 
 // Super-Admin only routes

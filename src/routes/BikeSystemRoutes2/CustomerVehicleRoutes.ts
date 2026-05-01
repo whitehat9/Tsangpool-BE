@@ -12,7 +12,7 @@ import {
   getMyVehicles,
   getVehicleById,
   getVehiclesByPhone,
-} from "../../controllers/BikeSystemController2/customerVehicle.controller";
+} from "../../controllers/VASnStock/customerVehicle.controller";
 import {
   protectAdminOrCustomer,
   protectCustomer,

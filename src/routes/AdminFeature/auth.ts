@@ -1,16 +1,19 @@
 import express from "express";
+
+import seedAdmin from "../../AdminPrivilege/seeder";
+import { authorize, protect } from "../../middleware/authmiddleware";
 import {
+  loginBranchM,
+  logoutBranchM,
+} from "../../controllers/AdminFeature/branchM.controller";
+import {
+  getAllBranchManagers,
   loginSuperAdmin,
   logoutSuperAdmin,
   createBranchM,
   deleteBranchM,
-  getAllBranchManagers,
   getBranchManagerPassword,
-} from "../controllers/auth.controller";
-import seedAdmin from "../AdminPrivilege/seeder";
-import { authorize, protect } from "../middleware/authmiddleware";
-
-import { loginBranchM, logoutBranchM } from "../controllers/branchM.controller";
+} from "../../controllers/AdminFeature/auth.controller";
 
 const router = express.Router();
 

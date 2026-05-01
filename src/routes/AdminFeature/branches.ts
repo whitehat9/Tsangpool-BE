@@ -1,13 +1,13 @@
 import express from "express";
 
-import { authorize, protect } from "../middleware/authmiddleware";
+import { authorize, protect } from "../../middleware/authmiddleware";
 import {
   addBranch,
   deleteBranch,
   getBranchById,
   getBranches,
   updateBranch,
-} from "../controllers/branches.controller";
+} from "../../controllers/branches.controller";
 
 const router = express.Router();
 // "/api/branch"

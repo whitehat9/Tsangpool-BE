@@ -1,8 +1,8 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
-import GetApproved from "../models/GetApproved";
+import GetApproved from "../../models/GetApproved";
 import mongoose from "mongoose";
-import logger from "../utils/logger";
+import logger from "../../utils/logger";
 
 /**
  * @desc    Submit a new GetApproved application
@@ -72,7 +72,7 @@ export const submitApplication = asyncHandler(
     });
 
     logger.info(
-      `New GetApproved application submitted: ${application.applicationId} by ${application.fullName}`
+      `New GetApproved application submitted: ${application.applicationId} by ${application.fullName}`,
     );
 
     res.status(201).json({
@@ -84,7 +84,7 @@ export const submitApplication = asyncHandler(
           "Application submitted successfully. You will receive a response within 24 hours.",
       },
     });
-  }
+  },
 );
 
 /**
@@ -160,7 +160,7 @@ export const getAllApplications = asyncHandler(
       currentPage: Number(page),
       data: applications,
     });
-  }
+  },
 );
 
 /**
@@ -195,7 +195,7 @@ export const getApplicationById = asyncHandler(
       success: true,
       data: application,
     });
-  }
+  },
 );
 
 /**
@@ -246,7 +246,7 @@ export const updateApplicationStatus = asyncHandler(
     if (status === "pre-approved" && preApprovalAmount) {
       await application.setPreApproval(
         preApprovalAmount,
-        preApprovalValidDays || 30
+        preApprovalValidDays || 30,
       );
     }
 
@@ -255,7 +255,7 @@ export const updateApplicationStatus = asyncHandler(
     await application.populate("reviewedBy", "name email");
 
     logger.info(
-      `Application ${application.applicationId} status updated to ${status} by admin ${reviewerId}`
+      `Application ${application.applicationId} status updated to ${status} by admin ${reviewerId}`,
     );
 
     res.status(200).json({
@@ -263,7 +263,7 @@ export const updateApplicationStatus = asyncHandler(
       data: application,
       message: "Application status updated successfully",
     });
-  }
+  },
 );
 
 /**
@@ -292,14 +292,14 @@ export const deleteApplication = asyncHandler(
     await GetApproved.deleteOne({ _id: application._id });
 
     logger.info(
-      `Application ${application.applicationId} deleted by admin ${req.user?.id}`
+      `Application ${application.applicationId} deleted by admin ${req.user?.id}`,
     );
 
     res.status(200).json({
       success: true,
       message: "Application deleted successfully",
     });
-  }
+  },
 );
 
 /**
@@ -364,21 +364,30 @@ export const getApplicationStats = asyncHandler(
         totalApplications,
         recentApplications: recentApplicationsCount,
         averageMonthlyIncome: avgIncome[0]?.averageIncome || 0,
-        statusBreakdown: statusCounts.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
-        employmentTypeBreakdown: employmentTypeCounts.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
-        creditScoreBreakdown: creditScoreCounts.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
+        statusBreakdown: statusCounts.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        employmentTypeBreakdown: employmentTypeCounts.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        creditScoreBreakdown: creditScoreCounts.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
       },
     });
-  }
+  },
 );
 
 /**
@@ -425,7 +434,7 @@ export const getApplicationsByBranch = asyncHandler(
       currentPage: Number(page),
       data: applications,
     });
-  }
+  },
 );
 
 /**
@@ -444,7 +453,7 @@ export const checkApplicationStatus = asyncHandler(
 
     const application = await GetApproved.findOne({ email, applicationId })
       .select(
-        "applicationId status preApprovalAmount preApprovalValidUntil createdAt"
+        "applicationId status preApprovalAmount preApprovalValidUntil createdAt",
       )
       .populate("branch", "name address");
 
@@ -464,7 +473,7 @@ export const checkApplicationStatus = asyncHandler(
         branch: application.branch,
       },
     });
-  }
+  },
 );
 
 /**
@@ -554,12 +563,12 @@ export const submitApplicationWithBike = asyncHandler(
     if (bikeEnquiry?.bikeId) {
       await application.populate(
         "bikeEnquiry.bikeId",
-        "modelName category price images"
+        "modelName category price images",
       );
     }
 
     logger.info(
-      `New GetApproved application with bike enquiry submitted: ${application.applicationId} by ${application.fullName}`
+      `New GetApproved application with bike enquiry submitted: ${application.applicationId} by ${application.fullName}`,
     );
 
     res.status(201).json({
@@ -575,7 +584,7 @@ export const submitApplicationWithBike = asyncHandler(
         } You will receive a response within 24 hours.`,
       },
     });
-  }
+  },
 );
 
 /**
@@ -666,7 +675,7 @@ export const getApplicationsWithBikes = asyncHandler(
       currentPage: Number(page),
       data: applications,
     });
-  }
+  },
 );
 
 /**
@@ -713,13 +722,13 @@ export const updateBikeEnquiry = asyncHandler(
     // Populate fields for response
     await application.populate(
       "bikeEnquiry.bikeId",
-      "modelName category price images year"
+      "modelName category price images year",
     );
     await application.populate("branch", "name address");
     await application.populate("reviewedBy", "name email");
 
     logger.info(
-      `Bike enquiry updated for application ${application.applicationId} by admin ${req.user?.id}`
+      `Bike enquiry updated for application ${application.applicationId} by admin ${req.user?.id}`,
     );
 
     res.status(200).json({
@@ -727,7 +736,7 @@ export const updateBikeEnquiry = asyncHandler(
       data: application,
       message: "Bike enquiry information updated successfully",
     });
-  }
+  },
 );
 
 /**
@@ -819,30 +828,39 @@ export const getEnquiryStats = asyncHandler(
     res.status(200).json({
       success: true,
       data: {
-        enquiryTypeBreakdown: enquiryTypeCounts.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
-        categoryInterest: categoryInterest.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
+        enquiryTypeBreakdown: enquiryTypeCounts.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+        categoryInterest: categoryInterest.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         tradeInStats: tradeInStats,
-        urgencyBreakdown: urgencyStats.reduce((acc, item) => {
-          acc[item._id] = item.count;
-          return acc;
-        }, {} as Record<string, number>),
+        urgencyBreakdown: urgencyStats.reduce(
+          (acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         popularBikes: popularBikes,
       },
     });
-  }
+  },
 );
 
 // Helper function to calculate EMI
 function calculateEMI(
   principal: number,
   annualRate: number,
-  tenureMonths: number
+  tenureMonths: number,
 ): number {
   const monthlyRate = annualRate / 12 / 100;
   const emi =

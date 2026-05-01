@@ -2,8 +2,8 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import logger from "../utils/logger";
-import EnquiryModel from "../models/EnquiryForm";
+import logger from "../../utils/logger";
+import EnquiryModel from "../../models/EnquiryForm";
 
 /**
  * @desc    Create a new enquiry

@@ -6,15 +6,15 @@ import rateLimit from "express-rate-limit";
 import corsOptions from "./config/corOptions";
 import { errorHandler, routeNotFound } from "./middleware/errorMiddleware";
 //Routes
-import auth from "./routes/auth";
+import auth from "./routes/AdminFeature/auth";
 import bikes from "./routes/BikeSystemRoutes/bikes.routes";
 import bikeImages from "./routes/BikeSystemRoutes/bikeImages.routes";
-import enquiryRoutes from "./routes/enquiryForm";
-import branchRoutes from "./routes/branches";
+import enquiryRoutes from "./routes/CustomerRequest/enquiryForm";
+import branchRoutes from "./routes/AdminFeature/branches";
 import cloudinaryRoutes from "./routes/cloudinary";
-import getApprovedRoutes from "./routes/getapproved";
+import getApprovedRoutes from "./routes/CustomerRequest/getapproved";
 import visitorRoutes from "./routes/visitorR";
-import contactRoutes from "./routes/contact";
+import contactRoutes from "./routes/CustomerRequest/contact";
 import customerRoutes from "./routes/customerRoutes/customer";
 import customerProfile from "./routes/customerRoutes/customerProfile";
 import serviceBookingRoutes from "./routes/customerRoutes/serviceBooking";
@@ -85,11 +85,14 @@ app.use("/api/service-bookings", serviceBookingRoutes);
 
 // Other Services
 app.use("/api/cloudinary", cloudinaryRoutes);
-app.use("/api/enquiry-form", enquiryRoutes);
-app.use("/api/getapproved", getApprovedRoutes); // this
-app.use("/api/messages", contactRoutes);
+
 app.use("/api/accident-reports", accidentReports);
 app.use("/api/visitor", visitorRoutes);
+
+// Cstomer Request
+app.use("/api/enquiry-form", enquiryRoutes);
+app.use("/api/getapproved", getApprovedRoutes);
+app.use("/api/messages", contactRoutes);
 
 //Third Party
 app.use("/api/scanfleet", scanfleetRoutes);
